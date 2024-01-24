@@ -1,0 +1,12 @@
+name: video_viewer
+version: 0.0.1
+description: video player
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  chewie: ^1.7.4
+  video_player: ^2.7.2
