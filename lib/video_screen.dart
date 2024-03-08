@@ -3,6 +3,26 @@ import 'package:video_viewer/data/video_viewer_controller.dart';
 import 'package:video_viewer/data/video_viewer_controller_impl.dart';
 import 'package:video_viewer/ui/video_widget.dart';
 
+class FinancialPlanningPdfDataSource extends DataSourceBase {
+  FinancialPlanningPdfDataSource(super.client);
+
+  Future<File> downloadPdfFromUrl({
+    required String pdfUrl,
+  }) async {
+    final PDFDataSource pdfDataSource = PDFDataSourceImpl();
+
+    final Dio dio = await client.getDioInstanceForURL();
+
+    final pdfFile = await pdfDataSource.getFromUrl(
+      dio,
+      pdfUrl,
+    );
+
+    return pdfFile;
+  }
+}
+
+
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
 
