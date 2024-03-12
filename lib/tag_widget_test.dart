@@ -1,48 +1,43 @@
 import 'package:flutter/material.dart';
-import 'package:soma/soma.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:soma/soma.dart'; // Garanta que este import esteja correto para o SomaTheme
+import 'package:your_project_path/financial_planning_loading_widget.dart'; // Substitua pelo caminho correto
 
-class FinancialPlanningLoadingWidget extends StatelessWidget {
-  final PreferredSizeWidget appbar;
-  const FinancialPlanningLoadingWidget({super.key, required this.appbar});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = SomaTheme.getDesignTokensOf(context);
-    return Scaffold(
-      backgroundColor: theme.colors.neutral.light.one,
-      appBar: appbar,
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: theme.spacing.inline.xs),
-        child: SkeletonScope(
-          runAnimation: true,
-          child: Column(
-            children: [
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton.circular(72),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                width: 205,
-                height: 26,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                width: 320,
-                height: 42,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                height: 306,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              Expanded(child: SizedBox(height: theme.spacing.inline.sm)),
-              const BoxSkeleton(height: 48),
-              SizedBox(height: theme.spacing.inline.sm),
-            ],
-          ),
-        ),
-      ),
+void main() {
+  Widget makeTestableWidget({required Widget child}) {
+    return MaterialApp(
+      home: child,
     );
   }
+
+  group('FinancialPlanningLoadingWidget Tests', () {
+    testWidgets('renders correctly with given appBar', (WidgetTester tester) async {
+      final testAppBar = AppBar(title: const Text('Loading...'));
+
+      await tester.pumpWidget(makeTestableWidget(
+        child: FinancialPlanningLoadingWidget(appbar: testAppBar),
+      ));
+
+      expect(find.byType(FinancialPlanningLoadingWidget), findsOneWidget);
+      expect(find.text('Loading...'), findsOneWidget);
+      // Verifique a presença dos elementos Skeleton
+      expect(find.byType(BoxSkeleton), findsWidgets);
+    });
+
+    testWidgets('has correct background color', (WidgetTester tester) async {
+      final testAppBar = AppBar(title: const Text('Loading...'));
+
+      await tester.pumpWidget(makeTestableWidget(
+        child: FinancialPlanningLoadingWidget(appbar: testAppBar),
+      ));
+
+      final Scaffold scaffold = tester.widget(find.byType(Scaffold));
+      final theme = SomaTheme.getDesignTokensOf(tester.element(find.byType(Scaffold)));
+
+      // Verifica se a cor de fundo do Scaffold corresponde ao esperado do tema
+      expect(scaffold.backgroundColor, theme.colors.neutral.light.one);
+    });
+
+    // Adicione mais testes conforme necessário para cobrir outros aspectos da widget
+  });
 }
