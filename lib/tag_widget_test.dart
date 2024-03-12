@@ -1,69 +1,75 @@
-import 'package:financial_planning/features/financial_planning/data/models/financial_planning_model.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:financial_planning/features/financial_planning_pdf/presentation/cubit/financial_planning_pdf_cubit.dart';
-import 'package:financial_planning/features/financial_planning_pdf/presentation/pages/financial_planning_pdf_loading_page.dart';
+import 'package:financial_planning/features/financial_planning_pdf/presentation/pages/financial_planning_pdf_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc_export/flutter_bloc.dart';
-import 'package:get_it_export/get_it.dart';
-import 'package:soma/soma.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 
-import 'financial_planning_pdf_error_page.dart';
-import 'financial_planning_pdf_loaded_page.dart';
+// Mocks
+class MockFinancialPlanningPdfCubit extends MockBloc<FinancialPlanningPdfEvent, FinancialPlanningPdfState> implements FinancialPlanningPdfCubit {}
 
-class FinancialPlanningPdfPage extends StatefulWidget {
-  final FinancialPlanningModel financialPlanningModel;
-  const FinancialPlanningPdfPage({
-    super.key,
-    required this.financialPlanningModel,
+class MockFinancialPlanningModel extends Mock implements FinancialPlanningModel {}
+
+// Anotação para o Mockito gerar os arquivos necessários
+@GenerateMocks([FinancialPlanningPdfCubit, FinancialPlanningModel])
+void main() {
+  late MockFinancialPlanningPdfCubit mockCubit;
+  late MockFinancialPlanningModel mockModel;
+
+  setUp(() {
+    mockCubit = MockFinancialPlanningPdfCubit();
+    mockModel = MockFinancialPlanningModel();
+    // Configura o GetIt para fornecer o mockCubit quando for solicitado um FinancialPlanningPdfCubit
+    GetIt.I.registerFactory<FinancialPlanningPdfCubit>(() => mockCubit);
   });
 
-  @override
-  State<FinancialPlanningPdfPage> createState() =>
-      _FinancialPlanningPdfPageState();
-}
+  tearDown(() {
+    GetIt.I.unregister<FinancialPlanningPdfCubit>();
+  });
 
-class _FinancialPlanningPdfPageState extends State<FinancialPlanningPdfPage> {
-  late final FinancialPlanningPdfCubit _financialPlanningCubit;
+  testWidgets('FinancialPlanningPdfPage shows loading state initially', (WidgetTester tester) async {
+    whenListen(mockCubit, Stream.fromIterable([FinancialPlanningPdfLoadingState()]), initialState: FinancialPlanningPdfInitialState());
 
-  @override
-  void initState() {
-    _financialPlanningCubit = GetIt.I.get()
-      ..getFinancialPlanningPdf(pdfUrl: widget.financialPlanningModel.pdfUrl);
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _financialPlanningCubit.close();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SomaTextScale(
-        child:
-            BlocBuilder<FinancialPlanningPdfCubit, FinancialPlanningPdfState>(
-      bloc: _financialPlanningCubit,
-      builder: (context, state) {
-        if (state is FinancialPlanningPdfInitialState ||
-            state is FinancialPlanningPdfLoadingState) {
-          return const FinancialPlanningPdfLoadingPage();
-        }
-
-        if (state is FinancialPlanningPdfLoadedState) {
-          final String pdfFilePath = state.pdfFilePath;
-
-          return FinancialPlanningPdfLoadedPage(
-            filePath: pdfFilePath,
-            financialPlanningModel: widget.financialPlanningModel,
-          );
-        }
-
-        return FinancialPlanningPdfErrorPage(
-          onRetry: () => _financialPlanningCubit.getFinancialPlanningPdf(
-            pdfUrl: widget.financialPlanningModel.pdfUrl,
-          ),
-        );
-      },
+    await tester.pumpWidget(MaterialApp(
+      home: FinancialPlanningPdfPage(financialPlanningModel: mockModel),
     ));
-  }
+
+    // Verifica se a página de carregamento é exibida
+    expect(find.byType(FinancialPlanningPdfLoadingPage), findsOneWidget);
+  });
+
+  testWidgets('FinancialPlanningPdfPage shows loaded page on success', (WidgetTester tester) async {
+    whenListen(mockCubit, Stream.fromIterable([FinancialPlanningPdfLoadedState(pdfFilePath: 'path/to/file')]), initialState: FinancialPlanningPdfInitialState());
+
+    await tester.pumpWidget(MaterialApp(
+      home: FinancialPlanningPdfPage(financialPlanningModel: mockModel),
+    ));
+
+    // Verifica se a página carregada é exibida com o arquivo PDF correto
+    expect(find.byType(FinancialPlanningPdfLoadedPage), findsOneWidget);
+  });
+
+  testWidgets('FinancialPlanningPdfPage shows error page on failure', (WidgetTester tester) async {
+    whenListen(mockCubit, Stream.fromIterable([FinancialPlanningPdfErrorState()]), initialState: FinancialPlanningPdfInitialState());
+
+    await tester.pumpWidget(MaterialApp(
+      home: FinancialPlanningPdfPage(financialPlanningModel: mockModel),
+    ));
+
+    // Verifica se a página de erro é exibida
+    expect(find.byType(FinancialPlanningPdfErrorPage), findsOneWidget);
+
+    // Testa o botão de tentar novamente
+    final Finder retryButton = find.byType(ElevatedButton); // Substitua ElevatedButton pelo tipo correto de botão se necessário
+    await tester.tap(retryButton);
+    await tester.pump();
+
+    // Verifica se o cubit foi chamado para tentar novamente
+    verify(mockCubit.getFinancialPlanningPdf(pdfUrl: anyNamed('pdfUrl'))).called(1);
+  });
+
+  // Mais testes podem ser adicionados para cobrir diferentes cenários e interações
 }
