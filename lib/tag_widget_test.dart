@@ -1,17 +1,29 @@
-import 'package:equatable_export/equatable.dart';
+import 'package:financial_planning/features/shared/utils/string_with_icon.dart';
 
-class StringWithIcon extends Equatable {
-  const StringWithIcon({
-    required this.description,
-    this.icon,
-  });
+typedef ListFromJson = Function(Map<String, dynamic> json);
 
-  final String description;
-  final String? icon;
+extension ListSerialize on List {
+  List<T> fromJson<T>({required ListFromJson mapper}) {
+    return map<T>((json) => mapper(json)).toList();
+  }
+}
 
-  @override
-  List<Object?> get props => [
-        description,
-        icon,
-      ];
+extension ListSerializeNull on List? {
+  List<T> fromJson<T>({required ListFromJson mapper}) {
+    return this?.map<T>((json) => mapper(json)).toList() ?? [];
+  }
+}
+
+extension StringList on List<StringWithIcon>? {
+  List<String> getListString() {
+    return this?.map<String>((item) => item.description).toList() ?? <String>[];
+  }
+}
+
+extension FilterKey on String {
+  String toFilterKeyFormat() => "Filter.${this[0].toUpperCase()}${substring(1)}";
+}
+
+extension AnalyticsFormat on String {
+  String toItemLabelFormat() => trim().replaceAll(' ', '-');
 }
