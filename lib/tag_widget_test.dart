@@ -1,48 +1,26 @@
-import 'package:flutter/material.dart';
-import 'package:soma/soma.dart';
+import 'dart:io';
 
-class FinancialPlanningLoadingWidget extends StatelessWidget {
-  final PreferredSizeWidget appbar;
-  const FinancialPlanningLoadingWidget({super.key, required this.appbar});
+import 'package:dio_export/dio.dart';
+import 'package:injectable_export/injectable.dart';
+import 'package:pdf_view/pdf_view.dart';
+import '../../../shared/bases/bases.dart';
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = SomaTheme.getDesignTokensOf(context);
-    return Scaffold(
-      backgroundColor: theme.colors.neutral.light.one,
-      appBar: appbar,
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: theme.spacing.inline.xs),
-        child: SkeletonScope(
-          runAnimation: true,
-          child: Column(
-            children: [
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton.circular(72),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                width: 205,
-                height: 26,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                width: 320,
-                height: 42,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              SizedBox(height: theme.spacing.inline.sm),
-              BoxSkeleton(
-                height: 306,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              Expanded(child: SizedBox(height: theme.spacing.inline.sm)),
-              const BoxSkeleton(height: 48),
-              SizedBox(height: theme.spacing.inline.sm),
-            ],
-          ),
-        ),
-      ),
+@injectable
+class FinancialPlanningPdfDataSource extends DataSourceBase {
+  FinancialPlanningPdfDataSource(super.client);
+
+  Future<File> downloadPdfFromUrl({
+    required String pdfUrl,
+  }) async {
+    final PDFDataSource pdfDataSource = PDFDataSourceImpl();
+
+    final Dio dio = await client.getDioInstanceForURL();
+
+    final pdfFile = await pdfDataSource.getFromUrl(
+      dio,
+      pdfUrl,
     );
+
+    return pdfFile;
   }
 }
