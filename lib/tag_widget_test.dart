@@ -56,3 +56,44 @@ class TagWidget extends StatelessWidget {
     );
   }
 }
+
+//////////////////////////////////
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:soma/soma.dart'; // Certifique-se de que soma.dart esteja acessível no seu projeto
+import 'your_widget_directory/tag_widget.dart'; // Ajuste o caminho conforme necessário
+
+void main() {
+  testWidgets('TagWidget displays with correct text and icon', (WidgetTester tester) async {
+    const String testText = 'Test Tag';
+    const String testIcon = 'test_icon'; // Substitua 'test_icon' pelo identificador do ícone real que você espera
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: TagWidget(
+          text: testText,
+          icon: testIcon,
+        ),
+      ),
+    ));
+
+    // Testa se os componentes principais estão presentes
+    expect(find.byType(Container), findsOneWidget);
+    expect(find.byType(SomaIcon), findsOneWidget);
+    expect(find.text(testText), findsOneWidget);
+
+    // Testa as propriedades do ícone
+    final SomaIcon somaIcon = tester.widget(find.byType(SomaIcon));
+    expect(somaIcon.data, SomaIconData(testIcon));
+    expect(somaIcon.size, SomaIconSize.sm);
+
+    // Testa as propriedades do texto
+    final SomaText somaText = tester.widget(find.byType(SomaText));
+    expect(somaText.data, testText);
+    expect(somaText.type, SomaTypographyType.caption);
+
+    // Aqui você pode adicionar mais verificações para espaçamento, margem, padding, cor da borda, etc.
+  });
+}
+
