@@ -1,74 +1,100 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:your_project_path/financial_planning_model.dart'; // Substitua pelo caminho correto do arquivo
+import 'dart:convert';
+import 'dart:io';
 
-void main() {
-  group('FinancialPlanningModel Props Tests', () {
-    test('props contains all fields', () {
-      const content = '{"key": "value"}';
-      const bottomDrawer = '{"drawerKey": "drawerValue"}';
-      const buttomName = 'TestButton';
-      const pdfUrl = 'http://example.com/test.pdf';
+import 'package:commons/network/network_provider.dart';
+import 'package:dio_export/dio.dart';
 
-      const model = FinancialPlanningModel(
-        content: content,
-        bottomDrawer: bottomDrawer,
-        buttomName: buttomName,
-        pdfUrl: pdfUrl,
+import '../utils/exceptions.dart';
+
+class DataSourceBase {
+  DataSourceBase(this.client);
+
+  final NetworkProvider client;
+
+  Future<R> makeGet<R>({
+    required String url,
+    required R Function(Map<String, dynamic>) returnMapper,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    final Dio dioInstance = await client.getDioInstanceForURL();
+
+    try {
+      final response = await dioInstance.get(
+        url,
+        queryParameters: queryParameters,
       );
 
-      expect(model.props, [content, bottomDrawer, buttomName, pdfUrl]);
-    });
+      switch (response.statusCode) {
+        case HttpStatus.ok:
+          try {
+            return returnMapper(json.decode(response.data));
+          } catch (e) {
+            throw ObjectMapException(
+              message: 'Erro na conversão do json do servidor para uma classe: ${e.toString()}',
+            );
+          }
+        default:
+          throw getExeption(response);
+      }
+    } catch (e) {
+      if (e is FinancialPlanningException) {
+        rethrow;
+      }
 
-    test('equality when all fields are the same', () {
-      const model1 = FinancialPlanningModel(
-        content: 'content',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName',
-        pdfUrl: 'pdfUrl',
-      );
-      const model2 = FinancialPlanningModel(
-        content: 'content',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName',
-        pdfUrl: 'pdfUrl',
-      );
+      if (e is DioException) {
+        throw ServerException(message: e.message ?? '');
+      }
 
-      expect(model1, equals(model2));
-    });
+      throw Exception(e.toString());
+    }
+  }
 
-    test('non-equality when at least one field differs', () {
-      const model1 = FinancialPlanningModel(
-        content: 'content1',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName',
-        pdfUrl: 'pdfUrl',
-      );
-      const model2 = FinancialPlanningModel(
-        content: 'content2',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName',
-        pdfUrl: 'pdfUrl',
-      );
+  Future<void> makePost({
+    required String url,
+    required Map<String, String> data,
+  }) async {
+    final Dio dioInstance = await client.getDioInstanceForURL();
 
-      expect(model1, isNot(equals(model2)));
-    });
-
-    // Teste adicional para verificar a não igualdade quando apenas um dos outros campos é diferente
-    test('non-equality on different buttomName', () {
-      const model1 = FinancialPlanningModel(
-        content: 'content',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName1',
-        pdfUrl: 'pdfUrl',
+    try {
+      final response = await dioInstance.post(
+        url,
+        data: json.encode(data),
       );
-      const model2 = FinancialPlanningModel(
-        content: 'content',
-        bottomDrawer: 'bottomDrawer',
-        buttomName: 'buttomName2',
-        pdfUrl: 'pdfUrl',
-      );
+      switch (response.statusCode) {
+        case HttpStatus.created:
+          return;
+        default:
+          throw getExeption(response);
+      }
+    } catch (e) {
+      if (e is FinancialPlanningException) {
+        rethrow;
+      }
 
-      expect(model1, isNot(equals(model2)));
-    });
-  });
+      if (e is DioException) {
+        throw ServerException(message: e.message ?? '');
+      }
+
+      throw Exception(e.toString());
+    }
+  }
+
+  Exception getExeption(Response<dynamic> response) {
+    switch (response.statusCode) {
+      case HttpStatus.badRequest:
+        throw BadRequestException(
+          message: 'Erro nos dados enviado para o servidor. ${response.exceptionMessage}',
+        );
+      case HttpStatus.noContent:
+        throw NoContentException(message: response.exceptionMessage);
+      default:
+        throw ServerException(
+          message: 'Erro na chamada executada ao servidor. ${response.exceptionMessage}',
+        );
+    }
+  }
+}
+
+extension MessageErro on Response<dynamic> {
+  String get exceptionMessage => 'StatusMessage: $statusMessage. Data:  ${data.toString()}';
 }
