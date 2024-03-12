@@ -1,26 +1,17 @@
-import 'dart:io';
+import 'package:equatable_export/equatable.dart';
 
-import 'package:dio_export/dio.dart';
-import 'package:injectable_export/injectable.dart';
-import 'package:pdf_view/pdf_view.dart';
-import '../../../shared/bases/bases.dart';
+class StringWithIcon extends Equatable {
+  const StringWithIcon({
+    required this.description,
+    this.icon,
+  });
 
-@injectable
-class FinancialPlanningPdfDataSource extends DataSourceBase {
-  FinancialPlanningPdfDataSource(super.client);
+  final String description;
+  final String? icon;
 
-  Future<File> downloadPdfFromUrl({
-    required String pdfUrl,
-  }) async {
-    final PDFDataSource pdfDataSource = PDFDataSourceImpl();
-
-    final Dio dio = await client.getDioInstanceForURL();
-
-    final pdfFile = await pdfDataSource.getFromUrl(
-      dio,
-      pdfUrl,
-    );
-
-    return pdfFile;
-  }
+  @override
+  List<Object?> get props => [
+        description,
+        icon,
+      ];
 }
