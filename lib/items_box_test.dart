@@ -163,3 +163,62 @@ class _ExperienceList extends StatelessWidget {
     );
   }
 }
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+  import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:soma/soma.dart'; // Certifique-se de que soma.dart esteja acessível no seu projeto
+import 'your_widget_directory/items_box_widget.dart'; // Ajuste o caminho conforme necessário
+
+void main() {
+  group('ItemsBoxWidget Tests', () {
+    // Dummy widgets para representar tags e experiências
+    final List<Widget> dummyTags = List<Widget>.generate(3, (index) => Chip(label: Text('Tag $index')));
+    final List<Widget> dummyExperiences = List<Widget>.generate(3, (index) => ListTile(title: Text('Experience $index')));
+
+    testWidgets('cardTags constructor creates correct layout', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ItemsBoxWidget.cardTags(tags: dummyTags, title: 'Tags'),
+        ),
+      ));
+
+      // Verifica a presença do título com o estilo correto
+      expect(find.text('Tags'), findsOneWidget);
+      // Verifica se a lista de tags está sendo renderizada
+      expect(find.byType(Chip), findsNWidgets(dummyTags.length));
+    });
+
+    testWidgets('profileTags constructor creates correct layout', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ItemsBoxWidget.profileTags(tags: dummyTags, title: 'Profile Tags'),
+        ),
+      ));
+
+      // Verifica a presença do título com o estilo correto
+      expect(find.text('Profile Tags'), findsOneWidget);
+      // Verifica se a lista de tags está sendo renderizada
+      expect(find.byType(Chip), findsNWidgets(dummyTags.length));
+    });
+
+    testWidgets('profileExperience constructor creates correct layout', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ItemsBoxWidget.profileExperience(experiences: dummyExperiences, title: 'Experience'),
+        ),
+      ));
+
+      // Verifica a presença do título com o estilo correto
+      expect(find.text('Experience'), findsOneWidget);
+      // Verifica se a lista de experiências está sendo renderizada
+      expect(find.byType(ListTile), findsNWidgets(dummyExperiences.length));
+    });
+
+    // Mais testes podem ser adicionados aqui para verificar a ausência do título, diferentes estilos e tipos, etc.
+  });
+}
+
