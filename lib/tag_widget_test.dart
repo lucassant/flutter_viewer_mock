@@ -1,100 +1,61 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:dio/dio.dart';
+import 'package:your_project_path/data_source_base.dart'; // Substitua pelo caminho correto
+import 'package:your_project_path/network_provider.dart'; // Substitua pelo caminho correto
 
-import 'package:commons/network/network_provider.dart';
-import 'package:dio_export/dio.dart';
+class MockNetworkProvider extends Mock implements NetworkProvider {}
 
-import '../utils/exceptions.dart';
+class MockDio extends Mock implements Dio {}
 
-class DataSourceBase {
-  DataSourceBase(this.client);
+class MockResponse<T> extends Mock implements Response<T> {}
 
-  final NetworkProvider client;
+void main() {
+  late MockNetworkProvider mockNetworkProvider;
+  late MockDio mockDio;
+  late DataSourceBase dataSourceBase;
 
-  Future<R> makeGet<R>({
-    required String url,
-    required R Function(Map<String, dynamic>) returnMapper,
-    Map<String, dynamic>? queryParameters,
-  }) async {
-    final Dio dioInstance = await client.getDioInstanceForURL();
+  setUp(() {
+    mockNetworkProvider = MockNetworkProvider();
+    mockDio = MockDio();
+    dataSourceBase = DataSourceBase(mockNetworkProvider);
 
-    try {
-      final response = await dioInstance.get(
-        url,
-        queryParameters: queryParameters,
+    // Configuração do mock para retornar uma instância de Dio quando getDioInstanceForURL for chamado
+    when(() => mockNetworkProvider.getDioInstanceForURL()).thenAnswer((_) async => mockDio);
+  });
+
+  group('DataSourceBase', () {
+    test('makeGet returns data on HttpStatus.ok', () async {
+      final mockResponse = MockResponse<Map<String, dynamic>>();
+      when(() => mockResponse.statusCode).thenReturn(HttpStatus.ok);
+      when(() => mockResponse.data).thenReturn({'key': 'value'});
+
+      when(() => mockDio.get(any(), queryParameters: any(named: "queryParameters")))
+          .thenAnswer((_) async => mockResponse);
+
+      final result = await dataSourceBase.makeGet(
+        url: 'https://test.com',
+        returnMapper: (map) => map, // Simplesmente retorna o Map para testar
       );
 
-      switch (response.statusCode) {
-        case HttpStatus.ok:
-          try {
-            return returnMapper(json.decode(response.data));
-          } catch (e) {
-            throw ObjectMapException(
-              message: 'Erro na conversão do json do servidor para uma classe: ${e.toString()}',
-            );
-          }
-        default:
-          throw getExeption(response);
-      }
-    } catch (e) {
-      if (e is FinancialPlanningException) {
-        rethrow;
-      }
+      expect(result, {'key': 'value'});
+    });
 
-      if (e is DioException) {
-        throw ServerException(message: e.message ?? '');
-      }
+    test('makePost executes successfully on HttpStatus.created', () async {
+      final mockResponse = MockResponse<void>();
+      when(() => mockResponse.statusCode).thenReturn(HttpStatus.created);
 
-      throw Exception(e.toString());
-    }
-  }
+      when(() => mockDio.post(any(), data: any(named: "data"))).thenAnswer((_) async => mockResponse);
 
-  Future<void> makePost({
-    required String url,
-    required Map<String, String> data,
-  }) async {
-    final Dio dioInstance = await client.getDioInstanceForURL();
-
-    try {
-      final response = await dioInstance.post(
-        url,
-        data: json.encode(data),
+      await dataSourceBase.makePost(
+        url: 'https://test.com',
+        data: {'key': 'value'},
       );
-      switch (response.statusCode) {
-        case HttpStatus.created:
-          return;
-        default:
-          throw getExeption(response);
-      }
-    } catch (e) {
-      if (e is FinancialPlanningException) {
-        rethrow;
-      }
 
-      if (e is DioException) {
-        throw ServerException(message: e.message ?? '');
-      }
+      // Verifica se o método post foi chamado no mockDio
+      verify(() => mockDio.post(any(), data: any(named: "data"))).called(1);
+    });
 
-      throw Exception(e.toString());
-    }
-  }
-
-  Exception getExeption(Response<dynamic> response) {
-    switch (response.statusCode) {
-      case HttpStatus.badRequest:
-        throw BadRequestException(
-          message: 'Erro nos dados enviado para o servidor. ${response.exceptionMessage}',
-        );
-      case HttpStatus.noContent:
-        throw NoContentException(message: response.exceptionMessage);
-      default:
-        throw ServerException(
-          message: 'Erro na chamada executada ao servidor. ${response.exceptionMessage}',
-        );
-    }
-  }
-}
-
-extension MessageErro on Response<dynamic> {
-  String get exceptionMessage => 'StatusMessage: $statusMessage. Data:  ${data.toString()}';
+    // Adicione mais testes para cobrir diferentes cenários, como respostas de erro, falhas de rede, etc.
+  });
 }
