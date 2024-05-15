@@ -1,54 +1,71 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:flutter/material.dart';
-import 'package:recipes/recipes.dart';
-import 'package:recommended_wallet/src/orders/domain/entity/recommended_orders_result.dart';
-import 'package:soma/soma.dart';
+package br.com.xpinc.investments.investmentoptions.home.presentation
 
-import 'recommended_orders_click_mediator.dart';
+import android.os.Bundle
+import br.com.xpinc.investments.investmentoptions.R
+import br.com.xpinc.investments.investmentoptions.databinding.ActivityInvestmentOptionsBinding
+import br.com.xpinc.investments.investmentoptions.home.presentation.fragments.LegacyShelfFragment
+import br.com.xpinc.mobile.commons.base.BaseMvvmActivity
+import br.com.xpinc.mobile.commons.extensions.TransitionAnimation
+import br.com.xpinc.mobile.commons.extensions.replace
+import br.com.xpinc.mobile.commons.flutter.crossing.FlutterCrossingManager
+import br.com.xpinc.mobile.commons.livedata.SafeObserver
+import br.com.xpinc.viewbinding.viewBinding
+import com.xpinc.soma.utils.hide
+import javax.inject.Inject
 
-class RecommendedOrdersEmptyWidget extends StatelessWidget {
-  const RecommendedOrdersEmptyWidget({
-    required this.empty,
-    required this.clickMediator,
-    Key? key,
-  }) : super(key: key);
+class InvestmentOptionsActivity : BaseMvvmActivity() {
 
-  final Empty empty;
-  final OrdersClickMediator clickMediator;
+    private val binding by viewBinding(ActivityInvestmentOptionsBinding::inflate)
+    private val vm by appViewModel<InvestmentsOptionsViewModel>()
 
-  @override
-  Widget build(BuildContext context) {
-    final tokens = SomaTheme.getDesignTokensOf(context);
-    final colors = tokens.colors;
+    private val selectedTab by lazy {
+        intent.data?.getQueryParameter("selectedTab").orEmpty()
+    }
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: colors.neutral.dark.pure,
-        appBar: SomaTopBar.defaultTopBar(
-          title: SomaText(
-            empty.header.title,
-            type: SomaTypographyType.heading4,
-          ),
-        ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            FeedbackXL(
-              title: empty.content.title,
-              icon: SomaIcons.empty,
-              description: empty.content.description,
-              type: FeedbackXLType.info,
-            ),
-            SomaButtonBlocked(
-              onPressed: () => clickMediator.sendEvent(
-                uri: empty.bottomAction.action,
-                digitalAnalytics: empty.bottomAction.digitalAnalytics,
-              ),
-              label: empty.bottomAction.title,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    @Inject
+    lateinit var flutterCrossingManager: FlutterCrossingManager
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(binding.root)
+        setupObservables()
+        setupToolbar()
+    }
+
+    private fun setupObservables() {
+        vm.showFlutterVersion.observe(this, SafeObserver { isShelfFlutterEnabled ->
+            if (isShelfFlutterEnabled) {
+                binding.toolbar.hide()
+                val route = FLUTTER_SHELF.format(selectedTab)
+                flutterCrossingManager.crossToFlutter(this, route)
+                finish()
+            } else {
+                setupToolbar()
+                showLegacyShelf()
+            }
+        })
+    }
+
+    private fun setupToolbar() {
+        binding.toolbar.apply {
+            setSupportActionBar(this)
+            setBackEnabled(this@InvestmentOptionsActivity, true)
+            setNavigationOnClickListener { onBackPressed() }
+            this@InvestmentOptionsActivity.title = getString(R.string.title_toolbar)
+        }
+    }
+
+    private fun showLegacyShelf() {
+        supportFragmentManager.replace(
+            id = R.id.inv_shelf_fragment,
+            fragment = LegacyShelfFragment.newInstance(),
+            tag = "LegacyShelfFragment",
+            addStack = false,
+            transitionAnimation = TransitionAnimation.FadeAnim
+        )
+    }
+
+    private companion object {
+        val FLUTTER_SHELF = "/investments/products_shelf?selectedTab=$selectedTab"
+    }
 }
